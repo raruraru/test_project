@@ -1,0 +1,1644 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>レトロカメラ</title>
+<style>
+:root{
+  --bg:#111318;
+  --bg2:#181a21;
+  --panel:#1e212a;
+  --panel2:#252934;
+  --line:#333846;
+  --txt:#e7e9ef;
+  --mut:#8b90a0;
+  --mut2:#666b7a;
+  --acc:#e68a2e;          /* 唯一の強いアクセント */
+  --acc-d:#b96c1f;
+  --ok:#5fd08a;
+  --danger:#e2534a;
+  --sheet-h:74vh;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+  font-size:14px;line-height:1.4;overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;}
+.hidden{display:none !important;}
+
+#app{position:fixed;inset:0;display:flex;flex-direction:column;max-width:520px;margin:0 auto;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
+
+/* ---- top bar ---- */
+#topbar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);}
+.iconbtn{width:38px;height:38px;border-radius:10px;background:var(--panel);display:flex;
+  align-items:center;justify-content:center;font-size:18px;color:var(--txt);border:1px solid var(--line);}
+.iconbtn:active{background:var(--panel2);}
+#albumBtn{padding:0;overflow:hidden;position:relative;}
+#albumBtn img{width:100%;height:100%;object-fit:cover;}
+#albumBtn .ph{font-size:16px;color:var(--mut);}
+#albumBtn .cnt{position:absolute;right:-2px;bottom:-2px;background:var(--acc);color:#111;
+  font-size:10px;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:flex;
+  align-items:center;justify-content:center;padding:0 3px;}
+#statusChips{flex:1;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;}
+#statusChips::-webkit-scrollbar{display:none;}
+.chip{flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:20px;
+  padding:5px 10px;font-size:11px;color:var(--mut);white-space:nowrap;}
+.chip b{color:var(--txt);font-weight:600;}
+
+/* ---- stage ---- */
+#stageWrap{flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+  background:#000;overflow:hidden;}
+#stage{position:relative;background:#000;}
+#view{display:block;width:100%;height:100%;background:#000;}
+.overlay{position:absolute;inset:0;pointer-events:none;}
+/* grid */
+#grid::before,#grid::after,#grid i{position:absolute;background:rgba(255,255,255,.35);}
+#grid::before{content:"";left:33.33%;top:0;bottom:0;width:1px;}
+#grid::after{content:"";left:66.66%;top:0;bottom:0;width:1px;}
+#grid i:nth-child(1){content:"";top:33.33%;left:0;right:0;height:1px;}
+#grid i:nth-child(2){content:"";top:66.66%;left:0;right:0;height:1px;}
+/* level */
+#level{display:flex;align-items:center;justify-content:center;}
+#level .fix{position:absolute;width:64px;height:2px;background:rgba(255,255,255,.4);border-radius:2px;}
+#level .lvl{width:96px;height:2px;background:var(--acc);border-radius:2px;transition:transform .05s linear;
+  box-shadow:0 0 6px rgba(0,0,0,.6);}
+#level.ok .lvl{background:var(--ok);}
+#level .dot{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--acc);}
+#level.ok .dot{background:var(--ok);}
+/* countdown */
+#countdown{display:flex;align-items:center;justify-content:center;font-size:96px;font-weight:800;
+  color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.7);}
+/* flash */
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;}
+#flash.go{animation:flash .28s ease-out;}
+@keyframes flash{0%{opacity:.9}100%{opacity:0}}
+/* rec dot */
+#recDot{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.5);
+  color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;display:flex;
+  align-items:center;gap:6px;}
+#recDot .d{width:9px;height:9px;border-radius:50%;background:var(--danger);animation:blink 1s infinite;}
+@keyframes blink{50%{opacity:.2}}
+/* cam message */
+#camMsg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:24px;text-align:center;background:var(--bg);color:var(--mut);}
+#camMsg .big{font-size:15px;color:var(--txt);}
+#camMsg button{background:var(--acc);color:#111;font-weight:700;padding:12px 22px;border-radius:12px;font-size:15px;}
+#camMsg .sub{font-size:12px;color:var(--mut2);max-width:280px;}
+
+/* ---- filter bar ---- */
+#filterBar{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:var(--bg);
+  scrollbar-width:none;}
+#filterBar::-webkit-scrollbar{display:none;}
+.fchip{flex:0 0 auto;padding:7px 12px;border-radius:18px;background:var(--panel);border:1px solid var(--line);
+  font-size:12px;color:var(--mut);white-space:nowrap;}
+.fchip.on{background:var(--acc);border-color:var(--acc);color:#111;font-weight:700;}
+
+/* ---- controls ---- */
+#controls{background:var(--bg);padding:6px 14px 14px;}
+#quickRow{display:flex;justify-content:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.qbtn{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:6px 12px;
+  font-size:12px;color:var(--mut);display:flex;align-items:center;gap:5px;}
+.qbtn.on{color:var(--acc);border-color:var(--acc);}
+.qbtn .v{color:var(--txt);font-weight:700;}
+#mainRow{display:flex;align-items:center;justify-content:space-between;}
+#switchCam,#modeBtn{width:56px;height:56px;border-radius:50%;background:var(--panel);border:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;gap:1px;}
+#modeBtn{font-size:11px;font-weight:700;}
+#modeBtn .lab{font-size:10px;color:var(--mut);}
+#shutter{width:78px;height:78px;border-radius:50%;background:transparent;border:4px solid #fff;
+  display:flex;align-items:center;justify-content:center;padding:0;}
+#shutter span{width:60px;height:60px;border-radius:50%;background:#fff;transition:.12s;}
+#shutter:active span{transform:scale(.88);}
+#shutter.video span{border-radius:12px;background:var(--danger);width:34px;height:34px;}
+#shutter.rec span{border-radius:8px;width:28px;height:28px;background:var(--danger);}
+#shutter.busy{opacity:.5;}
+
+/* ---- bottom sheet / modals ---- */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--bg2);
+  border-radius:18px 18px 0 0;max-width:520px;margin:0 auto;height:var(--sheet-h);
+  display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom);
+  transform:translateY(100%);transition:transform .25s ease;}
+#sheet.open{transform:translateY(0);}
+.sheetHead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;}
+.sheetHead h2{margin:0;font-size:16px;}
+.sheetHead .close{color:var(--mut);font-size:22px;width:32px;height:32px;}
+.sheetBody{flex:1;overflow-y:auto;padding:4px 16px 24px;-webkit-overflow-scrolling:touch;}
+.grab{width:40px;height:4px;background:var(--line);border-radius:3px;margin:8px auto 0;}
+.sec{margin-top:18px;}
+.sec>label{display:block;font-size:12px;color:var(--mut);margin-bottom:8px;letter-spacing:.02em;}
+.seg{display:flex;flex-wrap:wrap;gap:6px;}
+.seg button{flex:1 1 auto;min-width:0;padding:9px 6px;border-radius:10px;background:var(--panel);
+  border:1px solid var(--line);font-size:12px;color:var(--mut);text-align:center;}
+.seg button.on{background:var(--acc);border-color:var(--acc);color:#111;font-weight:700;}
+.seg.col2 button{flex:1 1 46%;}
+.seg.col3 button{flex:1 1 30%;}
+.row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);}
+.row:last-child{border-bottom:none;}
+.row .t{font-size:13px;}
+.row .d{font-size:11px;color:var(--mut2);}
+/* toggle */
+.tg{width:46px;height:27px;border-radius:14px;background:var(--panel2);position:relative;transition:.2s;flex:0 0 auto;}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.2s;}
+.tg.on{background:var(--acc);}
+.tg.on::after{transform:translateX(19px);}
+/* slider */
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:3px;background:var(--panel2);margin:8px 0;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--acc);}
+.small{font-size:11px;color:var(--mut);}
+.hint{font-size:11px;color:var(--mut2);margin-top:6px;line-height:1.5;}
+.btnline{display:flex;gap:8px;margin-top:8px;}
+.btnline button{flex:1;padding:11px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:13px;color:var(--txt);}
+.btnline button.pri{background:var(--acc);color:#111;font-weight:700;border-color:var(--acc);}
+.chipval{color:var(--acc);font-weight:700;}
+
+/* ---- album ---- */
+#album,#viewer{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;
+  max-width:520px;margin:0 auto;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
+.modalHead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);}
+.modalHead h2{margin:0;font-size:16px;}
+.modalHead .lnk{color:var(--acc);font-size:14px;font-weight:600;}
+#contact{flex:1;overflow-y:auto;padding:10px;background:#0c0d11;
+  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px);background-size:100% 40px;}
+#sheetGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.frame{position:relative;background:#000;border:1px solid #2a2d38;aspect-ratio:1/1;overflow:hidden;border-radius:2px;}
+.frame img,.frame video{width:100%;height:100%;object-fit:cover;display:block;}
+.frame .no{position:absolute;top:3px;left:4px;font-family:"Courier New",monospace;font-size:10px;
+  color:var(--acc);text-shadow:0 0 3px #000;}
+.frame .vid{position:absolute;bottom:3px;right:4px;font-size:11px;color:#fff;text-shadow:0 0 3px #000;}
+#emptyAlb{padding:60px 20px;text-align:center;color:var(--mut);}
+/* viewer */
+#viewerBody{flex:1;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;}
+#viewerBody img,#viewerBody video{max-width:100%;max-height:100%;object-fit:contain;}
+#viewerBar{display:flex;gap:8px;padding:12px 14px;}
+#viewerBar button{flex:1;padding:12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:13px;}
+#viewerBar button.del{color:var(--danger);}
+#viewerBar button.share{background:var(--acc);color:#111;font-weight:700;border-color:var(--acc);}
+
+/* ---- album 選択削除 ---- */
+#albumSelectBtn.on{color:var(--danger);}                 /* 選択モード中は赤で強調 */
+.frame .selmark{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;
+  background:var(--acc);color:#111;font-size:14px;font-weight:700;display:none;align-items:center;justify-content:center;}
+.frame.sel{outline:3px solid var(--acc);outline-offset:-3px;} /* 選択中の枠(オレンジ3px) */
+.frame.sel .selmark{display:flex;}
+#albumActionBar{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--bg);}
+#albumActionBar button{flex:1;padding:12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:13px;color:var(--txt);}
+#albumActionBar button.del{background:var(--danger);color:#fff;border-color:var(--danger);font-weight:700;}
+
+#toast{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+  background:rgba(20,22,28,.95);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:22px;
+  font-size:13px;z-index:80;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;}
+/* ソース映像は非表示だがデコード継続のため画面外に1pxで配置（display:noneにしない） */
+#cam{position:fixed;top:0;left:0;width:1px;height:1px;opacity:.01;pointer-events:none;z-index:-1;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <button id="albumBtn" class="iconbtn"><span class="ph">▦</span></button>
+    <div id="statusChips"></div>
+    <button id="gearBtn" class="iconbtn">⚙</button>
+  </header>
+
+  <main id="stageWrap">
+    <div id="stage">
+      <canvas id="view"></canvas>
+      <div id="grid" class="overlay hidden"><i></i><i></i></div>
+      <div id="level" class="overlay hidden">
+        <div class="fix"></div><div class="lvl"></div><div class="dot"></div>
+      </div>
+      <div id="countdown" class="overlay hidden"></div>
+      <div id="recDot" class="hidden"><span class="d"></span><span id="recTime">00:00</span></div>
+      <div id="flash"></div>
+    </div>
+    <div id="camMsg">
+      <div class="big">レトロカメラ</div>
+      <button id="startBtn">カメラを起動</button>
+      <div class="sub">起動をタップするとカメラとマイクの使用を許可できます。撮影した写真・動画は端末内（アプリ内アルバム）へ自動保存されます。</div>
+    </div>
+  </main>
+
+  <div id="filterBar"></div>
+
+  <footer id="controls">
+    <div id="quickRow">
+      <button class="qbtn" id="qTimer">⏱ <span class="v" id="qTimerV">OFF</span></button>
+      <button class="qbtn" id="qZoom">🔍 <span class="v" id="qZoomV">1×</span></button>
+      <button class="qbtn" id="qBurst">🔁 <span class="v" id="qBurstV">単写</span></button>
+      <button class="qbtn" id="qSound">🔊 <span class="v" id="qSoundV">カシャ</span></button>
+    </div>
+    <div id="mainRow">
+      <button id="switchCam">⟲<span style="font-size:9px;color:var(--mut)">切替</span></button>
+      <button id="shutter"><span></span></button>
+      <button id="modeBtn"><span id="modeIcon">🎬</span><span class="lab" id="modeLab">動画へ</span></button>
+    </div>
+  </footer>
+</div>
+
+<!-- ===== settings sheet ===== -->
+<div id="scrim" class="scrim hidden"></div>
+<div id="sheet">
+  <div class="grab"></div>
+  <div class="sheetHead"><h2>設定</h2><button class="close" id="sheetClose">✕</button></div>
+  <div class="sheetBody">
+
+    <div class="sec">
+      <label>解像度 / カメラプリセット</label>
+      <div class="seg col2" id="resSeg"></div>
+      <div class="hint" id="resHint"></div>
+    </div>
+
+    <div class="sec">
+      <label>アスペクト比 — 横向き（レトロ選択時は当時の比率を自動適用・後から変更可）</label>
+      <div class="seg col2" id="ratioSegLand"></div>
+      <div class="small" style="margin-top:12px">縦向き（3:4 / 2:3 / 9:16）</div>
+      <div class="seg col3" id="ratioSegPort"></div>
+    </div>
+
+    <div class="sec">
+      <label>ズーム倍率</label>
+      <div class="seg col2" id="zoomSeg"></div>
+    </div>
+
+    <div class="sec">
+      <label>シャッタースピード（静止画・初期値=自動）</label>
+      <div class="seg col3" id="shutterSeg"></div>
+      <div class="hint" id="shutterHint"></div>
+    </div>
+
+    <div class="sec">
+      <label>長秒露光の合成方式（1秒・30秒などで使用）</label>
+      <div class="seg col2" id="compSeg"></div>
+      <div class="hint">iPhoneは実露光が約1/3秒までのため、長秒はフレームを連続撮影して合成します。加算平均＝なめらか／比較明＝明るい部分だけを残す（光跡向け）。</div>
+    </div>
+
+    <div class="sec">
+      <label>ISO感度（静止画・初期値=自動）</label>
+      <div class="seg col3" id="isoSeg"></div>
+      <div class="hint" id="isoHint"></div>
+    </div>
+
+    <div class="sec">
+      <label>セルフタイマー</label>
+      <div class="seg col3" id="timerSeg"></div>
+    </div>
+
+    <div class="sec">
+      <div class="row"><div><div class="t">連写バースト</div><div class="d">1回のシャッターで5枚連続撮影</div></div><div class="tg" id="tgBurst"></div></div>
+      <div class="row"><div><div class="t">グリッド線（三分割）</div></div><div class="tg" id="tgGrid"></div></div>
+      <div class="row"><div><div class="t">水準器</div><div class="d">端末の傾きセンサーを使用</div></div><div class="tg" id="tgLevel"></div></div>
+    </div>
+
+    <div class="sec">
+      <label>エフェクト（重ねがけ可）</label>
+      <div class="row"><div><div class="t">ビネット（周辺減光）</div></div><div class="tg" id="tgVig"></div></div>
+      <div class="row"><div><div class="t">フィルムグレイン（粒状ノイズ）</div></div><div class="tg" id="tgGrain"></div></div>
+      <div class="row"><div><div class="t">光漏れ・ホコリ・キズ</div><div class="d">ライトリークとゴミをランダムに付加</div></div><div class="tg" id="tgLeak"></div></div>
+      <div class="row"><div><div class="t">シャッターラグ</div><div class="d">わざと"もっさり"待たせて撮影</div></div><div class="tg" id="tgLag"></div></div>
+    </div>
+
+    <div class="sec">
+      <label>日付スタンプ</label>
+      <div class="row"><div><div class="t">日付を焼き込む</div></div><div class="tg" id="tgDate"></div></div>
+      <div class="small" style="margin-top:10px">書体</div>
+      <div class="seg col3" id="dateFontSeg"></div>
+      <div class="small" style="margin-top:10px">色</div>
+      <div class="seg col3" id="dateColorSeg"></div>
+    </div>
+
+    <div class="sec">
+      <label>動画シーン（プリセットでFPS・明るさを簡易設定）</label>
+      <div class="seg col3" id="sceneSeg"></div>
+      <div class="hint" id="sceneHint"></div>
+    </div>
+
+    <div class="sec">
+      <label>動画フレームレート（シーンの初期値。手動変更するとシャッター基準も追従）</label>
+      <div class="seg col3" id="fpsSeg"></div>
+      <div class="hint" id="recHint"></div>
+    </div>
+
+    <div class="sec">
+      <label>シャッター音（撮影前に鳴らしてから撮影）</label>
+      <div class="seg col2" id="soundSeg"></div>
+      <div class="btnline">
+        <button id="soundLoadBtn">音声/動画を読み込む</button>
+        <button id="soundTestBtn" class="pri">試聴</button>
+      </div>
+      <div class="hint">対応: MP3 / WAV / AAC / M4A / FLAC。動画（MP4 / MOV）を選ぶと音声だけを切り出して使えます。</div>
+      <div id="trimBox" class="hidden" style="margin-top:12px;padding:12px;background:var(--panel);border-radius:12px;border:1px solid var(--line)">
+        <div class="small">読み込み: <span id="trimName" class="chipval">-</span>（長さ <span id="trimDur">0</span>秒）</div>
+        <div class="small" style="margin-top:10px">開始位置 <span id="trimStartV" class="chipval">0.0s</span></div>
+        <input type="range" id="trimStart" min="0" max="1" step="0.01" value="0">
+        <div class="small">切り出す長さ <span id="trimLenV" class="chipval">1.0s</span></div>
+        <input type="range" id="trimLen" min="0.1" max="3" step="0.05" value="1">
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top:24px;color:var(--mut2)">
+      撮影した写真・動画は枚数無制限でアプリ内アルバム（端末保存）に自動保存されます（自動削除なし）。不要なものはアルバムの「選択して削除」や各写真の「削除」で消せます。「共有/保存」から写真アプリへ書き出せます。
+    </div>
+  </div>
+</div>
+
+<!-- ===== album ===== -->
+<div id="album" class="hidden">
+  <div class="modalHead">
+    <h2>アルバム（ベタ焼き）</h2>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="lnk" id="albumSelectBtn">選択して削除</button>
+      <button class="lnk" id="albumClose">閉じる</button>
+    </div>
+  </div>
+  <div id="contact"><div id="sheetGrid"></div><div id="emptyAlb" class="hidden">まだ写真がありません</div></div>
+  <!-- 選択モード時のみ表示する一括削除バー -->
+  <div id="albumActionBar" class="hidden">
+    <button id="albumSelAll">全選択/解除</button>
+    <button id="albumDelSel" class="del">削除 (0)</button>
+    <button id="albumCancelSel">キャンセル</button>
+  </div>
+</div>
+
+<!-- ===== viewer ===== -->
+<div id="viewer" class="hidden">
+  <div class="modalHead">
+    <h2 id="viewerTitle">写真</h2>
+    <button class="lnk" id="viewerClose">戻る</button>
+  </div>
+  <div id="viewerBody"></div>
+  <div id="viewerBar">
+    <button class="del" id="viewerDel">削除</button>
+    <button class="share" id="viewerShare">共有 / 保存</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- hidden -->
+<input type="file" id="soundFile" accept="audio/*,video/*,.flac,.m4a,.aac,.wav,.mp3,.mp4,.mov" class="hidden">
+<video id="cam" playsinline muted autoplay></video>
+
+<script>
+"use strict";
+(function(){
+
+/* =========================================================
+   定数・プリセット
+========================================================= */
+var BURST_N = 5;
+
+// 解像度プリセット（base h = 出力の高さ基準）
+var RES = {
+  max:      {name:"端末最大",        h:0,    ratio:null, degrade:0, filter:"none",   reqW:4096, reqH:2160, hint:"端末カメラが出せる最大解像度をそのまま使用します。"},
+  m160:     {name:"160万画素レトロ", h:1080, ratio:"4:3",degrade:0, filter:"sepia",  reqW:1600, reqH:1200, hint:"1440×1080 相当（約160万画素）。デジカメ黎明期の質感。"},
+  disp:     {name:"使い切りフィルム",h:768,  ratio:"3:2",degrade:1, filter:"lightleak",reqW:1280, reqH:960, hint:"1024×768前後・粒状感と光漏れ。使い切りカメラ風。"},
+  cheki:    {name:"スクエア(チェキ風)",h:900, ratio:"1:1",degrade:1, filter:"sepia",  reqW:1280, reqH:1280, hint:"正方形・淡い退色。インスタント写真風。"},
+  heisei:   {name:"平成初期VGA",     h:480,  ratio:"4:3",degrade:2, filter:"vhs",    reqW:640,  reqH:480, hint:"640×480(VGA)。平成初期の家庭用カメラ相当。"}
+};
+var RES_ORDER = ["max","m160","disp","cheki","heisei"];
+
+// アスペクト比。横向き(既存)＋縦向き(新規:3:4 / 2:3 / 9:16)
+var RATIOS_LAND = ["4:3","3:2","16:9","1:1"];   // 横向き
+var RATIOS_PORT = ["3:4","2:3","9:16"];         // 縦向き
+function ratioParts(r){return {"4:3":[4,3],"3:2":[3,2],"16:9":[16,9],"1:1":[1,1],"3:4":[3,4],"2:3":[2,3],"9:16":[9,16]}[r];}
+
+// フィルター定義。css=ベース色調, tint=合成色, op=合成モード
+var FILTERS = [
+  {id:"none",   name:"なし",         css:""},
+  {id:"mono",   name:"モノクロ",     css:"contrast(1.06) brightness(1.02)", gray:true}, // grayフラグ=画素の輝度計算で確実にグレースケール化(Canvas filter非対応端末対策)
+  {id:"sepia",  name:"セピア",       css:"sepia(.62) contrast(1.05) brightness(1.04) saturate(1.15)"},
+  {id:"px_y",   name:"ピクセルY",    css:"contrast(1.1)", pixel:90, tint:"#e8c02e", op:"color"},
+  {id:"px_r",   name:"ピクセルR",    css:"contrast(1.1)", pixel:90, tint:"#e2534a", op:"color"},
+  {id:"px_b",   name:"ピクセルB",    css:"contrast(1.1)", pixel:90, tint:"#3d7bd6", op:"color"},
+  {id:"px_g",   name:"ピクセルGrey", css:"contrast(1.12)", pixel:90, gray:true}, // グレー化も画素演算で確実に(mono同様)
+  {id:"y2k_c",  name:"Y2Kコーラル",  css:"brightness(1.12) contrast(.9) saturate(1.1)", tint:"#ff9e9e", op:"soft-light", ta:.55},
+  {id:"y2k_h",  name:"Y2Kハニー",    css:"brightness(1.13) contrast(.9) saturate(1.05)", tint:"#ffe0a3", op:"soft-light", ta:.55},
+  {id:"y2k_t",  name:"Y2Kティール",  css:"brightness(1.1) contrast(.92) saturate(1.1)",  tint:"#a8f0e6", op:"soft-light", ta:.55},
+  {id:"y2k_v",  name:"Y2Kバイオレット",css:"brightness(1.12) contrast(.9) saturate(1.12)",tint:"#d9c2ff", op:"soft-light", ta:.55},
+  {id:"vhs",    name:"VHS",          css:"saturate(1.25) contrast(1.05) brightness(1.02)", vhs:true},
+  {id:"puri",   name:"プリクラ",     css:"brightness(1.2) contrast(.92) saturate(1.08)", puri:true},
+  {id:"neon",   name:"夜市ネオン",   css:"brightness(.82) contrast(1.22) saturate(1.55)", bloom:true},
+  {id:"leak",   name:"光漏れ",       css:"contrast(1.02) saturate(1.05)", forceLeak:true}
+];
+
+var DATE_FONTS = [
+  {id:"digital", name:"デジタル", css:'"Courier New",monospace', glow:true, weight:"700"},
+  {id:"film",    name:"フィルム", css:'Georgia,"Times New Roman",serif', glow:false, weight:"700"},
+  {id:"round",   name:"丸文字",   css:'"Trebuchet MS",Verdana,sans-serif', glow:false, weight:"700"}
+];
+var DATE_COLORS = [
+  {id:"orange", name:"オレンジ", c:"#ff7a1a"},
+  {id:"amber",  name:"アンバー", c:"#ffb000"},
+  {id:"white",  name:"ホワイト", c:"#f2f2f2"},
+  {id:"green",  name:"グリーン", c:"#69ff8a"},
+  {id:"red",    name:"レッド",   c:"#ff5a4d"}
+];
+
+var SOUNDS = [
+  {id:"kasha",  name:"一眼カシャ"},
+  {id:"compact",name:"コンパクト"},
+  {id:"film",   name:"巻き上げ"},
+  {id:"beep",   name:"ビープ"},
+  {id:"none",   name:"無音"},
+  {id:"custom", name:"読込音"}
+];
+
+/* =========================================================
+   露出プリセット（静止画SS/ISO・動画シーン）
+   ※iPhone SafariはWeb APIから実SS/ISOを制御できない。対応端末(主にAndroid)では
+     applyConstraintsで実制御を試み、非対応端末ではcanvasで擬似再現する。
+========================================================= */
+// 静止画シャッター速度。sec=露光秒数（null=自動）。1秒以上は長秒露光としてコンポジット合成で撮影する。
+var SHUTTER_STILL = [
+  {id:"auto",  label:"自動",   sec:null},
+  {id:"1/8000",label:"1/8000", sec:1/8000}, // 1/8000秒
+  {id:"1/4000",label:"1/4000", sec:1/4000},
+  {id:"1/2000",label:"1/2000", sec:1/2000},
+  {id:"1/1000",label:"1/1000", sec:1/1000},
+  {id:"1/500", label:"1/500",  sec:1/500},
+  {id:"1/250", label:"1/250",  sec:1/250},
+  {id:"1/125", label:"1/125",  sec:1/125},
+  {id:"1/60",  label:"1/60",   sec:1/60},
+  {id:"1/30",  label:"1/30",   sec:1/30},
+  {id:"1/15",  label:"1/15",   sec:1/15},
+  {id:"1/8",   label:"1/8",    sec:1/8},
+  {id:"1/4",   label:"1/4",    sec:1/4},
+  {id:"1/2",   label:"1/2",    sec:1/2},
+  {id:"1s",    label:"1秒",    sec:1},       // 長秒(コンポジット)
+  {id:"30s",   label:"30秒",   sec:30}       // 長秒(コンポジット) ※新規追加
+];
+function shutterSecOf(id){ for(var i=0;i<SHUTTER_STILL.length;i++){ if(SHUTTER_STILL[i].id===id) return SHUTTER_STILL[i].sec; } return null; }
+function shutterLabelOf(id){ for(var i=0;i<SHUTTER_STILL.length;i++){ if(SHUTTER_STILL[i].id===id) return SHUTTER_STILL[i].label; } return id; }
+
+// 静止画ISO感度。v=ISO値（null=自動）
+var ISO_STILL = [
+  {id:"auto",label:"自動", v:null},
+  {id:"25",  label:"25",  v:25},
+  {id:"32",  label:"32",  v:32},
+  {id:"50",  label:"50",  v:50},
+  {id:"64",  label:"64",  v:64},
+  {id:"100", label:"100", v:100},
+  {id:"200", label:"200", v:200},
+  {id:"400", label:"400", v:400},
+  {id:"800", label:"800", v:800},
+  {id:"1600",label:"1600",v:1600},
+  {id:"3200",label:"3200",v:3200}
+];
+function isoValOf(id){ for(var i=0;i<ISO_STILL.length;i++){ if(ISO_STILL[i].id===id) return ISO_STILL[i].v; } return null; }
+
+// 長秒露光の合成方式
+var COMPOSITES = [ {id:"avg",label:"加算平均"}, {id:"lighten",label:"比較明合成"} ];
+
+// 動画シーンプリセット。fps=初期FPS / isoPolicy=ISO方針 / ssRule=シャッター規則
+var VIDEO_SCENES = {
+  day:    {name:"日中(標準)", fps:60, isoPolicy:"low",       ssRule:"x2",    note:"明るさはISO優先・SSはfps×2基準"},
+  night:  {name:"夜間",       fps:30, isoPolicy:"high",      ssRule:"fpsmin",note:"高ISO許可・SSはfps下限まで"},
+  sports: {name:"スポーツ",   fps:60, isoPolicy:"auto_high", ssRule:"fast",  note:"動体ブレ抑制・SS高速固定"}
+};
+var SCENE_ORDER = ["day","night","sports"];
+// 動画の実効シャッター速度(秒)。現在のfpsとシーン規則から算出。fps未満のSSは切れないため下限=1/fps。
+function videoShutterSec(){
+  var sc=VIDEO_SCENES[state.videoScene]||VIDEO_SCENES.day, fps=state.fps;
+  if(sc.ssRule==="x2")     return 1/(fps*2); // fps×2基準(例:60fps→1/120)
+  if(sc.ssRule==="fpsmin") return 1/fps;     // fps下限(最も遅い。例:30fps→1/30)
+  if(sc.ssRule==="fast")   return 1/1000;    // 高速固定 1/1000秒
+  return 1/(fps*2);
+}
+// 秒を「1/x」または「Ns」表記に整形
+function fmtShutter(sec){ if(sec>=1) return sec+"s"; return "1/"+Math.round(1/sec); }
+
+/* =========================================================
+   状態
+========================================================= */
+var state = {
+  mode:"photo", facing:"environment", zoom:1,
+  res:"m160", ratio:"4:3", filter:"sepia",
+  timer:0, burst:false, grid:false, level:false,
+  fps:60,               // 動画の既定FPS(=日中シーンの初期値60)
+  shutter:"auto",       // 静止画シャッター速度(既定=自動)。値はSHUTTER_STILLのid
+  iso:"auto",           // 静止画ISO感度(既定=自動)。値はISO_STILLのid
+  composite:"avg",      // 長秒露光の合成方式 "avg"=加算平均 / "lighten"=比較明合成
+  videoScene:"day",     // 動画シーンプリセット "day"/"night"/"sports"
+  effects:{vig:false, grain:false, leak:false, lag:false},
+  date:{on:true, font:"digital", color:"orange"},
+  sound:"kasha",
+  trim:{start:0, len:1, dur:0}
+};
+function loadSettings(){
+  try{
+    var s=JSON.parse(localStorage.getItem("retrocam.settings")||"null");
+    if(s){ ["mode","facing","zoom","res","ratio","filter","timer","burst","grid","fps","sound","shutter","iso","composite","videoScene"].forEach(function(k){ if(s[k]!==undefined) state[k]=s[k]; });
+      if(s.effects) state.effects=Object.assign(state.effects,s.effects);
+      if(s.date) state.date=Object.assign(state.date,s.date);
+      if(state.sound==="custom") state.sound="kasha"; // customは復元不可
+    }
+  }catch(e){}
+}
+function saveSettings(){
+  try{ localStorage.setItem("retrocam.settings", JSON.stringify({
+    mode:state.mode,facing:state.facing,zoom:state.zoom,res:state.res,ratio:state.ratio,filter:state.filter,
+    timer:state.timer,burst:state.burst,grid:state.grid,fps:state.fps,sound:state.sound,
+    shutter:state.shutter,iso:state.iso,composite:state.composite,videoScene:state.videoScene,
+    effects:state.effects,date:state.date
+  })); }catch(e){}
+}
+
+/* =========================================================
+   DOM
+========================================================= */
+var $=function(id){return document.getElementById(id);};
+var cam=$("cam"), view=$("view"), vctx=view.getContext("2d");
+var stage=$("stage"), stageWrap=$("stageWrap");
+var camMsg=$("camMsg");
+
+/* =========================================================
+   スクラッチキャンバス
+========================================================= */
+var scratch={};
+function getScratch(name,w,h){
+  var c=scratch[name];
+  if(!c){ c=document.createElement("canvas"); scratch[name]=c; }
+  if(c.width!==w||c.height!==h){ c.width=w; c.height=h; }
+  return c;
+}
+var noiseCanvas=null;
+function buildNoise(){
+  noiseCanvas=document.createElement("canvas"); noiseCanvas.width=256; noiseCanvas.height=256;
+  var nx=noiseCanvas.getContext("2d"); var img=nx.createImageData(256,256); var d=img.data;
+  for(var i=0;i<d.length;i+=4){ var v=(Math.random()*255)|0; d[i]=d[i+1]=d[i+2]=v; d[i+3]=255; }
+  nx.putImageData(img,0,0);
+}
+buildNoise();
+
+/* =========================================================
+   カメラ
+========================================================= */
+var stream=null, camReady=false, camErr=false;
+function stopStream(){ if(stream){ stream.getTracks().forEach(function(t){t.stop();}); stream=null; } }
+
+function startCamera(){
+  camErr=false; camReady=false;
+  showMsg(null);
+  stopStream();
+  var p=RES[state.res];
+  var constraints={ audio:false, video:{
+    facingMode:{ideal:state.facing},
+    width:{ideal:p.reqW}, height:{ideal:p.reqH}
+  }};
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    showMsg("この環境ではカメラAPI（getUserMedia）が使えません。","HTTPSまたは対応アプリ上で開いてください。",true);
+    return Promise.resolve();
+  }
+  return navigator.mediaDevices.getUserMedia(constraints).then(function(s){
+    stream=s; cam.srcObject=s; cam.muted=true; cam.playsInline=true;
+    return cam.play().catch(function(){});
+  }).then(function(){
+    camReady=true; camMsg.classList.add("hidden");
+    layout(); ensureLoop(); applyCamControls(); // 対応端末なら実SS/ISOを適用
+  }).catch(function(err){
+    camErr=true;
+    var m="カメラを起動できませんでした。";
+    if(err&&err.name==="NotAllowedError") m="カメラの使用が許可されませんでした。";
+    else if(err&&err.name==="NotFoundError") m="カメラが見つかりませんでした。";
+    showMsg(m, (err&&err.name)||"", true);
+  });
+}
+function showMsg(msg,sub,retry){
+  if(msg===null){ camMsg.classList.add("hidden"); return; }
+  camMsg.classList.remove("hidden");
+  camMsg.innerHTML="";
+  var big=document.createElement("div"); big.className="big"; big.textContent=msg; camMsg.appendChild(big);
+  var btn=document.createElement("button"); btn.textContent= retry? "再試行" : "カメラを起動";
+  btn.onclick=function(){ ensureAudio(); startCamera(); }; camMsg.appendChild(btn);
+  if(sub){ var s=document.createElement("div"); s.className="sub"; s.textContent=sub; camMsg.appendChild(s); }
+}
+
+// 現在のモード/設定から、実制御で狙う露光値を返す。{ss:秒|null, iso:数値|null}
+function desiredExposureHW(){
+  if(state.mode==="photo"){
+    var ss=shutterSecOf(state.shutter);
+    if(ss!=null && ss>=1) ss=null;               // 長秒(1秒以上)はコンポジット側で処理するため実制御には渡さない
+    return {ss:ss, iso:isoValOf(state.iso)};
+  }
+  var sc=VIDEO_SCENES[state.videoScene]||VIDEO_SCENES.day;
+  var iso = sc.isoPolicy==="low"?100 : null;     // 低ISO固定のみ実指定、他は自動に任せる
+  return {ss:videoShutterSec(), iso:iso};
+}
+// 対応端末(主にAndroid Chrome)では実際のSS/ISOをカメラへ適用。iPhone等は capabilities が無く自動でスキップ。
+function applyCamControls(){
+  if(!stream || !stream.getVideoTracks) return;
+  var track=stream.getVideoTracks()[0];
+  if(!track || !track.getCapabilities || !track.applyConstraints) return;
+  var caps={}; try{ caps=track.getCapabilities()||{}; }catch(e){ return; }
+  var want=desiredExposureHW(), adv={};
+  try{
+    if(caps.exposureMode){
+      var manual=(want.ss!=null || want.iso!=null);
+      if(manual && caps.exposureMode.indexOf("manual")>=0){
+        adv.exposureMode="manual";
+        if(want.ss!=null && caps.exposureTime){
+          // exposureTimeは100µs単位。露光秒→単位=sec×10000。対応範囲にクランプ。
+          var et=Math.round(want.ss*10000);
+          adv.exposureTime=Math.max(caps.exposureTime.min, Math.min(caps.exposureTime.max, et));
+        }
+        if(want.iso!=null && caps.iso){
+          adv.iso=Math.max(caps.iso.min, Math.min(caps.iso.max, want.iso));
+        }
+      } else if(!manual && caps.exposureMode.indexOf("continuous")>=0){
+        adv.exposureMode="continuous"; // 自動露出へ戻す
+      }
+    }
+    if(Object.keys(adv).length){ track.applyConstraints({advanced:[adv]}).catch(function(){}); }
+  }catch(e){}
+}
+
+/* =========================================================
+   レイアウト計算
+========================================================= */
+var outW=0,outH=0, pvW=0,pvH=0;
+function outputSize(){
+  var p=RES[state.res];
+  var rp=ratioParts(state.ratio), rw=rp[0], rh=rp[1];
+  var W,H;
+  if(state.res==="max"){
+    var vw=cam.videoWidth||1280, vh=cam.videoHeight||960;
+    if(vw/vh > rw/rh){ H=vh; W=Math.round(vh*rw/rh); } else { W=vw; H=Math.round(vw*rh/rw); }
+  }else{
+    H=p.h; W=Math.round(H*rw/rh);
+  }
+  return {W:W,H:H};
+}
+function layout(){
+  var o=outputSize(); outW=o.W; outH=o.H;
+  // preview backing store: longest edge <= 760
+  var scale=Math.min(1, 760/Math.max(outW,outH));
+  pvW=Math.max(2,Math.round(outW*scale)); pvH=Math.max(2,Math.round(outH*scale));
+  view.width=pvW; view.height=pvH;
+  // displayed size (contain in stageWrap)
+  var cw=stageWrap.clientWidth, ch=stageWrap.clientHeight;
+  var s=Math.min(cw/outW, ch/outH);
+  var dw=Math.round(outW*s), dh=Math.round(outH*s);
+  stage.style.width=dw+"px"; stage.style.height=dh+"px";
+  view.style.width=dw+"px"; view.style.height=dh+"px";
+}
+window.addEventListener("resize", function(){ if(camReady) layout(); });
+
+/* =========================================================
+   描画パイプライン
+========================================================= */
+function currentFilter(){ for(var i=0;i<FILTERS.length;i++){ if(FILTERS[i].id===state.filter) return FILTERS[i]; } return FILTERS[0]; }
+
+function drawBase(work, W, H){
+  var wc=work.getContext("2d");
+  var f=currentFilter();
+  // crop (cover + zoom)
+  var vw=cam.videoWidth, vh=cam.videoHeight;
+  if(!vw||!vh) return;
+  var outA=W/H, srcA=vw/vh, sw,sh;
+  if(srcA>outA){ sh=vh; sw=vh*outA; } else { sw=vw; sh=vw/outA; }
+  sw/=state.zoom; sh/=state.zoom;
+  var sx=(vw-sw)/2, sy=(vh-sh)/2;
+
+  // degrade（レトロ/自撮り）
+  var degrade=RES[state.res].degrade + (state.facing==="user"?1:0);
+  degrade=Math.min(3,degrade);
+  var dscale=[1,0.62,0.42,0.30][degrade];
+
+  wc.setTransform(1,0,0,1,0,0);
+  wc.filter=f.css||"none";
+  wc.imageSmoothingEnabled=true;
+
+  if(dscale<1){
+    var tw=Math.max(2,Math.round(W*dscale)), th=Math.max(2,Math.round(H*dscale));
+    var tmp=getScratch("deg",tw,th), tcx=tmp.getContext("2d");
+    tcx.setTransform(1,0,0,1,0,0); tcx.filter="none"; tcx.clearRect(0,0,tw,th);
+    if(state.facing==="user"){ tcx.save(); tcx.translate(tw,0); tcx.scale(-1,1);
+      tcx.drawImage(cam,sx,sy,sw,sh,0,0,tw,th); tcx.restore(); }
+    else tcx.drawImage(cam,sx,sy,sw,sh,0,0,tw,th);
+    wc.drawImage(tmp,0,0,tw,th,0,0,W,H);
+  }else{
+    if(state.facing==="user"){ wc.save(); wc.translate(W,0); wc.scale(-1,1);
+      wc.drawImage(cam,sx,sy,sw,sh,0,0,W,H); wc.restore(); }
+    else wc.drawImage(cam,sx,sy,sw,sh,0,0,W,H);
+  }
+  wc.filter="none";
+
+  // モノクロ系(grayフラグ)はCanvas filterに頼らず画素の輝度計算で確実にグレースケール化
+  if(f.gray){ applyGrayscale(wc,W,H); }
+
+  // pixelate
+  if(f.pixel){ pixelate(work,wc,W,H,f.pixel); }
+}
+// 画素のRGBを輝度(明るさ)に変換してR=G=Bへ揃える → 黒一色の濃淡(グレースケール)
+function applyGrayscale(ctx,W,H){
+  var img; try{ img=ctx.getImageData(0,0,W,H); }catch(e){ return; } // 取得不可(未対応/汚染)なら何もしない
+  var d=img.data;
+  for(var i=0;i<d.length;i+=4){
+    // Rec.601の視感度係数で輝度を算出: R0.299 / G0.587 / B0.114
+    var y=(d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114)|0;
+    d[i]=d[i+1]=d[i+2]=y;
+  }
+  ctx.putImageData(img,0,0);
+}
+function pixelate(cnv,ctx,W,H,blocks){
+  var sw=Math.max(1,Math.round(blocks)), sh=Math.max(1,Math.round(blocks*H/W));
+  var t=getScratch("px",sw,sh), tc=t.getContext("2d");
+  tc.setTransform(1,0,0,1,0,0); tc.imageSmoothingEnabled=false; tc.clearRect(0,0,sw,sh);
+  tc.drawImage(cnv,0,0,sw,sh);
+  ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,W,H); ctx.drawImage(t,0,0,sw,sh,0,0,W,H);
+  ctx.imageSmoothingEnabled=true;
+}
+
+function renderTo(ctx, W, H, t, isCapture){
+  // ベース映像(クロップ+フィルター)を作ってから、色・露出・効果を合成する
+  var work=getScratch("work",W,H);
+  drawBase(work,W,H);
+  composeFromBase(ctx, work, W, H, t, isCapture);
+}
+// ベース画像(base)を受け取り、VHS/色調/露出/エフェクト/日付を合成する。
+// 長秒コンポジット撮影でも同じ後処理を使い回すため、ベース生成と後処理を分離している。
+function composeFromBase(ctx, base, W, H, t, isCapture){
+  var f=currentFilter();
+  // 露出シミュレーション倍率(SS/ISOの擬似再現)とISO由来の追加グレインを決定
+  var expo=1, isoGrain=0;
+  if(state.mode==="photo"){ expo=stillExposureFactor(); isoGrain=stillIsoGrain(); }
+  else { var ve=videoExposure(); expo=ve.f; isoGrain=ve.grain; }
+
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalCompositeOperation="source-over"; ctx.globalAlpha=1; ctx.filter="none";
+  ctx.clearRect(0,0,W,H);
+
+  // VHS: チャンネル分離（色ずれ）
+  if(f.vhs){
+    var dx=Math.max(1,Math.round(W*0.004)); // 色ずれ量=横幅の0.4%
+    ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H);
+    channel(ctx,base,"#ff0000",-dx,0,W,H);
+    channel(ctx,base,"#00ff00",0,0,W,H);
+    channel(ctx,base,"#0000ff",dx,0,W,H);
+    ctx.globalCompositeOperation="source-over"; ctx.globalAlpha=1;
+  }else{
+    ctx.drawImage(base,0,0);
+  }
+
+  // 露出シミュレーション(明るさ)を適用 ※SS/ISO擬似再現
+  applyExposure(ctx,W,H,expo);
+
+  // tint / duotone
+  if(f.tint){
+    ctx.globalCompositeOperation=f.op||"color";
+    ctx.globalAlpha=f.ta!=null?f.ta:1;
+    ctx.fillStyle=f.tint; ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=1; ctx.globalCompositeOperation="source-over";
+  }
+
+  // bloom (neon)
+  if(f.bloom){ bloom(ctx,W,H); }
+
+  // scanlines / VHS extras
+  if(f.vhs){
+    ctx.globalAlpha=1;
+    ctx.fillStyle="rgba(0,0,0,0.16)";
+    for(var y=0;y<H;y+=Math.max(2,Math.round(H/240))){ ctx.fillRect(0,y,W,1); } // 走査線の間隔=高さ/240px
+    // rolling bright band
+    var by=((t*0.05)%(H+80))-40;
+    var grad=ctx.createLinearGradient(0,by-30,0,by+30);
+    grad.addColorStop(0,"rgba(255,255,255,0)"); grad.addColorStop(.5,"rgba(255,255,255,0.06)"); grad.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=grad; ctx.fillRect(0,by-30,W,60);
+  }
+
+  // purikura sparkle
+  if(f.puri){ sparkles(ctx,W,H,t); pinkVignette(ctx,W,H); }
+
+  // effects
+  if(state.effects.vig || f.bloom){ vignette(ctx,W,H, f.bloom?0.55:0.4); }
+  if(state.effects.leak || f.forceLeak){ lightLeak(ctx,W,H,t); dust(ctx,W,H,t); }
+  if(state.effects.grain || RES[state.res].degrade>=2){ grain(ctx,W,H,t); }
+  // ISO感度に応じた追加グレイン(高ISOほどノイズが増える擬似再現)
+  if(isoGrain>0){ grainAmt(ctx,W,H,t,isoGrain); }
+
+  // 日付スタンプ（VHSは常に、その他はトグル）
+  if(state.date.on || f.vhs){ dateStamp(ctx,W,H,f.vhs); }
+}
+
+/* ---- 露出/ISOの擬似再現（実SS/ISOを制御できない端末向け） ---- */
+// 静止画の露出補正倍率。両方自動なら1(補正なし)。1秒以上はコンポジット側で処理するため1。
+function stillExposureFactor(){
+  var ss=shutterSecOf(state.shutter), iso=isoValOf(state.iso);
+  if(ss==null && iso==null) return 1;
+  if(ss!=null && ss>=1) return 1;            // 長秒はコンポジット合成に任せる
+  var ssPart = ss!=null ? ss/(1/60) : 1;     // 基準シャッター=1/60秒
+  var isoPart= iso!=null ? iso/100 : 1;      // 基準ISO=100
+  return Math.max(0.25, Math.min(4, ssPart*isoPart)); // 破綻回避のため約±2段(0.25〜4倍)にクランプ
+}
+// 静止画の高ISOによる追加グレイン量(0〜0.18)。ISO200超で1段ごと+0.04。
+function stillIsoGrain(){
+  var iso=isoValOf(state.iso);
+  if(iso==null || iso<=200) return 0;
+  return Math.min(0.18, (Math.log(iso/200)/Math.LN2)*0.04);
+}
+// 動画シーンに応じた露出倍率と追加グレイン
+function videoExposure(){
+  var sc=VIDEO_SCENES[state.videoScene]||VIDEO_SCENES.day;
+  var ss=videoShutterSec();
+  var iso = sc.isoPolicy==="low"?100 : (sc.isoPolicy==="high"?800:200); // ISO方針を擬似ISO値へ
+  var f=Math.max(0.4, Math.min(2.2, (ss/(1/60))*(iso/100)));            // 動画は控えめにクランプ(0.4〜2.2倍)
+  var grain = sc.isoPolicy==="high"?0.14 : (sc.isoPolicy==="auto_high"?0.07:0.03);
+  return {f:f, grain:grain};
+}
+// 明るさ倍率fを合成のみで適用(Canvas filter非対応端末でも動作)。f<1は黒重ね、f>1は加算合成で増光。
+function applyExposure(ctx,W,H,f){
+  if(f==null || f===1) return;
+  ctx.globalCompositeOperation="source-over";
+  if(f<1){
+    // 暗くする: 黒を alpha=(1-f) で重ねる → 出力 = f×元画像
+    ctx.globalAlpha=1-f; ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
+  }else{
+    // 明るくする: 現在の画像を控えとして取り、加算合成(lighter)で重ねて増光する
+    var snap=getScratch("expo",W,H), sc=snap.getContext("2d");
+    sc.setTransform(1,0,0,1,0,0); sc.globalCompositeOperation="source-over"; sc.globalAlpha=1; sc.clearRect(0,0,W,H);
+    sc.drawImage(ctx.canvas,0,0);
+    var remain=f-1;                        // 合計f倍にするため(f-1)倍ぶん加算
+    ctx.globalCompositeOperation="lighter";
+    while(remain>0){ ctx.globalAlpha=Math.min(1,remain); ctx.drawImage(snap,0,0); remain-=1; } // alphaは最大1なので分割
+    ctx.globalAlpha=1; ctx.globalCompositeOperation="source-over";
+  }
+}
+
+function channel(ctx,work,color,dx,dy,W,H){
+  var t=getScratch("ch",W,H), tc=t.getContext("2d");
+  tc.setTransform(1,0,0,1,0,0); tc.globalCompositeOperation="source-over"; tc.globalAlpha=1; tc.filter="none";
+  tc.clearRect(0,0,W,H); tc.drawImage(work,0,0);
+  tc.globalCompositeOperation="multiply"; tc.fillStyle=color; tc.fillRect(0,0,W,H);
+  tc.globalCompositeOperation="source-over";
+  ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=1; ctx.drawImage(t,dx,dy);
+}
+function bloom(ctx,W,H){
+  var t=getScratch("bl",W,H), tc=t.getContext("2d");
+  tc.setTransform(1,0,0,1,0,0); tc.clearRect(0,0,W,H);
+  tc.filter="brightness(1.6) contrast(2.2)"; tc.drawImage(ctx.canvas,0,0); tc.filter="none";
+  var b=getScratch("bl2",W,H), bc=b.getContext("2d");
+  bc.setTransform(1,0,0,1,0,0); bc.clearRect(0,0,W,H);
+  bc.filter="blur("+Math.max(2,Math.round(W/55))+"px)"; bc.drawImage(t,0,0); bc.filter="none";
+  ctx.globalCompositeOperation="screen"; ctx.globalAlpha=0.75; ctx.drawImage(b,0,0);
+  ctx.globalAlpha=1; ctx.globalCompositeOperation="source-over";
+}
+function vignette(ctx,W,H,strength){
+  var g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.35,W/2,H/2,Math.max(W,H)*0.72);
+  g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,0,"+strength+")");
+  ctx.globalCompositeOperation="source-over"; ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+}
+function pinkVignette(ctx,W,H){
+  var g=ctx.createRadialGradient(W/2,H*0.4,Math.min(W,H)*0.3,W/2,H/2,Math.max(W,H)*0.7);
+  g.addColorStop(0,"rgba(255,255,255,0)"); g.addColorStop(1,"rgba(255,180,210,0.35)");
+  ctx.globalCompositeOperation="screen"; ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation="source-over";
+}
+function grain(ctx,W,H,t){ grainAmt(ctx,W,H,t,0.10); } // 既定のフィルムグレイン濃度=0.10
+// alphaを指定してノイズを重ねる(ISO擬似再現でも使用)
+function grainAmt(ctx,W,H,t,alpha){
+  var ox=((t*0.7)|0)%156, oy=((t*0.9)|0)%156; // 毎フレーム、ノイズ元の参照位置をずらして粒を散らす
+  ctx.globalCompositeOperation="overlay"; ctx.globalAlpha=alpha;
+  ctx.drawImage(noiseCanvas, ox,oy,100,100, 0,0,W,H); // 256pxノイズの一部(100px角)を拡大して重ねる
+  ctx.globalAlpha=1; ctx.globalCompositeOperation="source-over";
+}
+function lightLeak(ctx,W,H,t){
+  ctx.globalCompositeOperation="screen";
+  var x=W*(0.5+0.45*Math.sin(t*0.0004));
+  var g=ctx.createRadialGradient(x,H*0.15,10,x,H*0.15,W*0.7);
+  g.addColorStop(0,"rgba(255,120,40,0.45)"); g.addColorStop(0.5,"rgba(255,80,60,0.18)"); g.addColorStop(1,"rgba(255,80,60,0)");
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  var g2=ctx.createRadialGradient(W*0.05,H*0.95,5,W*0.05,H*0.95,W*0.5);
+  g2.addColorStop(0,"rgba(255,210,120,0.30)"); g2.addColorStop(1,"rgba(255,210,120,0)");
+  ctx.fillStyle=g2; ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation="source-over";
+}
+function dust(ctx,W,H,t){
+  ctx.globalAlpha=0.5;
+  var seed=(t/120)|0;
+  var rnd=mulberry(seed);
+  var n=6+((rnd()*8)|0);
+  ctx.fillStyle="rgba(230,230,220,0.5)";
+  for(var i=0;i<n;i++){ var rx=rnd()*W, ry=rnd()*H, rr=rnd()*1.6+0.4; ctx.beginPath(); ctx.arc(rx,ry,rr,0,6.28); ctx.fill(); }
+  if(rnd()>0.55){ var lx=rnd()*W; ctx.strokeStyle="rgba(255,255,255,0.25)"; ctx.lineWidth=rnd()*1.2+0.4;
+    ctx.beginPath(); ctx.moveTo(lx,0); ctx.lineTo(lx+ (rnd()*20-10),H); ctx.stroke(); }
+  ctx.globalAlpha=1;
+}
+function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function sparkles(ctx,W,H,t){
+  var pts=[[0.12,0.15],[0.85,0.12],[0.5,0.08],[0.08,0.55],[0.92,0.5],[0.2,0.88],[0.8,0.9],[0.5,0.95]];
+  for(var i=0;i<pts.length;i++){
+    var a=0.5+0.5*Math.sin(t*0.004 + i*1.7);
+    var sz=W*(0.02+0.02*a);
+    var x=pts[i][0]*W, y=pts[i][1]*H;
+    ctx.globalAlpha=a; ctx.fillStyle=i%2? "#fff":"#ffd6ec";
+    star(ctx,x,y,sz);
+  }
+  ctx.globalAlpha=1;
+}
+function star(ctx,x,y,r){
+  ctx.beginPath();
+  for(var i=0;i<4;i++){ var a=i*Math.PI/2;
+    ctx.moveTo(x,y);
+    ctx.quadraticCurveTo(x+Math.cos(a-0.25)*r*0.3, y+Math.sin(a-0.25)*r*0.3, x+Math.cos(a)*r, y+Math.sin(a)*r);
+    ctx.quadraticCurveTo(x+Math.cos(a+0.25)*r*0.3, y+Math.sin(a+0.25)*r*0.3, x,y);
+  }
+  ctx.fill();
+}
+function pad(n){ return (n<10?"0":"")+n; }
+function dateStamp(ctx,W,H,vhs){
+  var d=new Date();
+  var fontDef=DATE_FONTS[0]; for(var i=0;i<DATE_FONTS.length;i++){ if(DATE_FONTS[i].id===state.date.font) fontDef=DATE_FONTS[i]; }
+  var colDef=DATE_COLORS[0]; for(var j=0;j<DATE_COLORS.length;j++){ if(DATE_COLORS[j].id===state.date.color) colDef=DATE_COLORS[j]; }
+  var col=vhs? "#ff8a2a" : colDef.c;
+  var size=Math.max(11, Math.round(W*0.052));
+  ctx.font=fontDef.weight+" "+size+"px "+(vhs?'"Courier New",monospace':fontDef.css);
+  ctx.textBaseline="alphabetic";
+  var txt = d.getFullYear()+" "+(d.getMonth()+1)+" "+pad(d.getDate());
+  if(vhs){ txt = pad((d.getHours()%12)||12)+":"+pad(d.getMinutes())+"  "+(d.getMonth()+1)+"/"+pad(d.getDate())+"/"+d.getFullYear(); }
+  var pad2=Math.round(W*0.035);
+  var tw=ctx.measureText(txt).width;
+  var x=W-tw-pad2, y=H-pad2;
+  if(vhs){
+    ctx.textAlign="left";
+    ctx.fillStyle=col; ctx.shadowColor="rgba(0,0,0,.6)"; ctx.shadowBlur=size*0.2;
+    ctx.fillText("▶ PLAY", pad2, size+pad2);
+    ctx.fillText(txt, pad2, H-pad2);
+    ctx.shadowBlur=0;
+    return;
+  }
+  ctx.textAlign="left";
+  if(fontDef.glow){ ctx.shadowColor=col; ctx.shadowBlur=size*0.45; ctx.fillStyle=col; ctx.fillText(txt,x,y);
+    ctx.fillText(txt,x,y); ctx.shadowBlur=0; }
+  else { ctx.shadowColor="rgba(0,0,0,.55)"; ctx.shadowBlur=size*0.25; ctx.fillStyle=col; ctx.fillText(txt,x,y); ctx.shadowBlur=0; }
+}
+
+/* =========================================================
+   ループ
+========================================================= */
+var raf=0, paused=false;
+function loop(){
+  raf=requestAnimationFrame(loop);
+  if(!camReady||paused) return;
+  if(cam.readyState<2) return;
+  if(view.width!==pvW||view.height!==pvH){ /*noop*/ }
+  renderTo(vctx, pvW, pvH, performance.now(), false);
+  if(state.level) updateLevelBubble();
+}
+function ensureLoop(){ if(!raf) raf=requestAnimationFrame(loop); }
+
+/* =========================================================
+   WebAudio（シャッター音）
+========================================================= */
+var actx=null, customBuffer=null, customEl=null, customName="";
+function ensureAudio(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(actx&&actx.state==="suspended") actx.resume(); return actx; }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+
+function playShutter(){
+  return new Promise(function(resolve){
+    if(state.sound==="none"){ resolve(); return; }
+    var ctx=ensureAudio();
+    if(state.sound==="custom"){
+      if(customBuffer&&ctx){
+        var src=ctx.createBufferSource(); src.buffer=customBuffer;
+        var g=ctx.createGain(); g.gain.value=1; src.connect(g); g.connect(ctx.destination);
+        var st=Math.min(state.trim.start, Math.max(0,customBuffer.duration-0.05));
+        var ln=Math.min(state.trim.len, customBuffer.duration-st);
+        try{ src.start(0, st, ln); }catch(e){ try{src.start(0);}catch(e2){} }
+        setTimeout(resolve, Math.max(60, ln*1000));
+      }else if(customEl){
+        try{ customEl.currentTime=state.trim.start; customEl.muted=false; customEl.volume=1; customEl.play(); }catch(e){}
+        setTimeout(function(){ try{customEl.pause();}catch(e){} resolve(); }, Math.max(60,state.trim.len*1000));
+      }else resolve();
+      return;
+    }
+    if(!ctx){ resolve(); return; }
+    var dur=synth(ctx,state.sound);
+    setTimeout(resolve, Math.max(60, dur*1000));
+  });
+}
+function synth(ctx,type){
+  var t0=ctx.currentTime;
+  function click(at,freq,dur,vol){
+    var b=ctx.createBuffer(1, ctx.sampleRate*dur, ctx.sampleRate);
+    var d=b.getChannelData(0);
+    for(var i=0;i<d.length;i++){ d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2); }
+    var s=ctx.createBufferSource(); s.buffer=b;
+    var f=ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=freq; f.Q.value=1;
+    var g=ctx.createGain(); g.gain.value=vol;
+    s.connect(f); f.connect(g); g.connect(ctx.destination); s.start(t0+at);
+  }
+  function tone(at,freq,dur,vol){
+    var o=ctx.createOscillator(); var g=ctx.createGain();
+    o.frequency.value=freq; o.type="sine";
+    g.gain.setValueAtTime(0,t0+at); g.gain.linearRampToValueAtTime(vol,t0+at+0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+at+dur);
+    o.connect(g); g.connect(ctx.destination); o.start(t0+at); o.stop(t0+at+dur+0.02);
+  }
+  if(type==="kasha"){ click(0,2500,0.045,0.9); click(0.07,1600,0.09,0.8); return 0.2; }
+  if(type==="compact"){ tone(0,1400,0.05,0.3); tone(0.06,2000,0.05,0.3); return 0.14; }
+  if(type==="film"){ for(var i=0;i<7;i++){ click(i*0.03,900+i*40,0.02,0.4);} return 0.26; }
+  if(type==="beep"){ tone(0,880,0.12,0.35); return 0.14; }
+  return 0.1;
+}
+
+function loadSoundFile(file){
+  customName=file.name;
+  var isVideo=/video|mp4|mov/i.test(file.type)||/\.(mp4|mov)$/i.test(file.name);
+  var arr=file.arrayBuffer? file.arrayBuffer() : readAsArrayBuffer(file);
+  return arr.then(function(buf){
+    var ctx=ensureAudio();
+    if(ctx){
+      return ctx.decodeAudioData(buf.slice(0)).then(function(ab){
+        customBuffer=ab; if(customEl){try{URL.revokeObjectURL(customEl.src);}catch(e){}} customEl=null;
+        setupTrim(ab.duration);
+        state.sound="custom"; saveSettings(); renderControls();
+        toast("音声を読み込みました");
+      }).catch(function(){ return fallbackEl(file); });
+    }
+    return fallbackEl(file);
+  }).catch(function(){ return fallbackEl(file); });
+}
+function readAsArrayBuffer(file){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){res(r.result);}; r.onerror=rej; r.readAsArrayBuffer(file); }); }
+function fallbackEl(file){
+  return new Promise(function(resolve){
+    var isVideo=/video|mp4|mov/i.test(file.type)||/\.(mp4|mov)$/i.test(file.name);
+    var el=document.createElement(isVideo?"video":"audio");
+    el.src=URL.createObjectURL(file); el.preload="auto"; el.playsInline=true;
+    el.onloadedmetadata=function(){
+      customBuffer=null; customEl=el;
+      setupTrim(isFinite(el.duration)&&el.duration? el.duration : 3);
+      state.sound="custom"; saveSettings(); renderControls();
+      toast("音声を読み込みました（簡易再生）"); resolve();
+    };
+    el.onerror=function(){ toast("この形式は読み込めませんでした"); resolve(); };
+  });
+}
+function setupTrim(dur){
+  dur=Math.max(0.1,dur);
+  state.trim.dur=dur;
+  state.trim.start=Math.min(state.trim.start, Math.max(0,dur-0.1));
+  state.trim.len=Math.min(state.trim.len, dur-state.trim.start, 3);
+  if(state.trim.len<0.1) state.trim.len=Math.min(dur,1);
+  var box=$("trimBox"); box.classList.remove("hidden");
+  $("trimName").textContent=customName;
+  $("trimDur").textContent=dur.toFixed(1);
+  var ts=$("trimStart"); ts.max=Math.max(0.1,dur).toFixed(2); ts.value=state.trim.start;
+  var tl=$("trimLen"); tl.max=Math.min(3,dur).toFixed(2); tl.value=state.trim.len;
+  $("trimStartV").textContent=state.trim.start.toFixed(1)+"s";
+  $("trimLenV").textContent=state.trim.len.toFixed(1)+"s";
+}
+
+/* =========================================================
+   撮影（写真）
+========================================================= */
+var busy=false;
+function flash(){ var f=$("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
+
+function countdown(sec){
+  return new Promise(function(resolve){
+    var el=$("countdown"); el.classList.remove("hidden");
+    var n=sec;
+    el.textContent=n;
+    var iv=setInterval(function(){
+      n--;
+      if(n<=0){ clearInterval(iv); el.classList.add("hidden"); resolve(); }
+      else el.textContent=n;
+    },1000);
+  });
+}
+
+function takePhoto(){
+  var cap=getScratch("cap",outW,outH);
+  var cctx=cap.getContext("2d");
+  renderTo(cctx, outW, outH, performance.now(), true);
+  flash();
+  return new Promise(function(resolve){
+    cap.toBlob(function(blob){
+      if(!blob){ resolve(); return; }
+      makeThumb(cap).then(function(thumb){
+        saveMedia({type:"photo", blob:blob, thumb:thumb, w:outW, h:outH}).then(resolve);
+      });
+    }, "image/jpeg", 0.9);
+  });
+}
+function makeThumb(srcCanvas){
+  return new Promise(function(res){
+    var tw=180, th=Math.round(180*srcCanvas.height/srcCanvas.width);
+    var t=document.createElement("canvas"); t.width=tw; t.height=th;
+    t.getContext("2d").drawImage(srcCanvas,0,0,tw,th);
+    res(t.toDataURL("image/jpeg",0.6));
+  });
+}
+
+function shutter(){
+  if(busy||!camReady) return;
+  if(state.mode==="video"){ toggleRecord(); return; }
+  busy=true; $("shutter").classList.add("busy");
+  (async function(){
+    try{
+      ensureAudio();
+      if(state.timer>0) await countdown(state.timer);
+      var ss=shutterSecOf(state.shutter);
+      if(ss!=null && ss>=1){
+        // 長秒露光(1秒/30秒など): コンポジット合成で撮影(iPhoneでも再現可能)
+        if(state.sound!=="none") await playShutter();
+        await compositeCapture(ss);
+      }else{
+        var shots = state.burst? BURST_N : 1;   // 連写時は5枚(BURST_N)
+        for(var i=0;i<shots;i++){
+          if(state.sound!=="none") await playShutter();
+          if(state.effects.lag) await sleep(650); // シャッターラグ=650ms待つ
+          await takePhoto();
+          if(shots>1) await sleep(300);           // 連写の間隔=300ms
+        }
+        toast(shots>1? shots+"枚を保存しました" : "保存しました");
+      }
+      refreshAlbumBtn();
+    }catch(e){ toast("撮影に失敗しました"); }
+    finally{ busy=false; $("shutter").classList.remove("busy"); }
+  })();
+}
+
+// 長秒露光をコンポジット合成で再現。durSec秒間ベース映像を連続蓄積し、1枚に合成して保存する。
+// もう一度シャッターを押すと途中で確定できる。
+function compositeCapture(durSec){
+  return new Promise(function(resolve){
+    var W=outW, H=outH;
+    paused=true;                                 // 通常プレビュー描画を止め、合成中は途中経過を自前表示
+    var acc=getScratch("acc",W,H), ac=acc.getContext("2d"); // 蓄積(アキュムレータ)
+    ac.setTransform(1,0,0,1,0,0); ac.globalCompositeOperation="source-over"; ac.globalAlpha=1; ac.clearRect(0,0,W,H);
+    var frame=getScratch("cframe",W,H);          // 1フレーム分のベース映像
+    var n=0, startT=performance.now(), totalMs=durSec*1000, stopEarly=false;
+    var cd=$("countdown"); cd.classList.remove("hidden"); cd.style.fontSize="40px";
+    var sh=$("shutter");
+    var onTap=function(){ stopEarly=true; };     // 合成中の再タップで途中確定
+    sh.addEventListener("click", onTap);
+
+    function step(){
+      drawBase(frame,W,H); n++;
+      if(state.composite==="lighten"){
+        ac.globalCompositeOperation="lighten"; ac.globalAlpha=1;  // 比較明: 明るい画素だけを残す
+        ac.drawImage(frame,0,0);
+      }else{
+        ac.globalCompositeOperation="source-over"; ac.globalAlpha=1/n; // 加算平均: alpha=1/nでn枚の累積平均になる
+        ac.drawImage(frame,0,0); ac.globalAlpha=1;
+      }
+      // 途中経過をプレビュー(view)へ縮小表示
+      vctx.setTransform(1,0,0,1,0,0); vctx.globalCompositeOperation="source-over"; vctx.globalAlpha=1;
+      vctx.clearRect(0,0,pvW,pvH); vctx.drawImage(acc,0,0,W,H,0,0,pvW,pvH);
+      var el=performance.now()-startT, remain=Math.max(0,(totalMs-el)/1000);
+      cd.textContent="⏱ "+remain.toFixed(remain<10?1:0)+"s"; // 残り秒(10秒未満は小数1桁)
+      if(el>=totalMs || stopEarly) finish(); else requestAnimationFrame(step);
+    }
+    function finish(){
+      cd.classList.add("hidden"); cd.style.fontSize=""; // カウントダウン用の大きさ(96px)へ戻す
+      sh.removeEventListener("click", onTap);
+      var cap=getScratch("cap",W,H), cctx=cap.getContext("2d");
+      composeFromBase(cctx, acc, W, H, performance.now(), true); // 蓄積画像に色調・効果・日付を一括適用
+      flash();
+      paused=false;                              // 通常プレビュー再開
+      cap.toBlob(function(blob){
+        if(!blob){ resolve(); return; }
+        makeThumb(cap).then(function(thumb){
+          saveMedia({type:"photo", blob:blob, thumb:thumb, w:W, h:H}).then(function(){
+            toast("長秒合成を保存しました("+n+"枚合成)"); resolve();
+          });
+        });
+      }, "image/jpeg", 0.92);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* =========================================================
+   撮影（動画）
+========================================================= */
+var recorder=null, recChunks=[], recIv=0, recStart=0, recStream=null, micStream=null;
+function pickMime(){
+  var cands=["video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"];
+  if(typeof MediaRecorder==="undefined") return null;
+  for(var i=0;i<cands.length;i++){ if(MediaRecorder.isTypeSupported(cands[i])) return cands[i]; }
+  return "";
+}
+function toggleRecord(){
+  if(recorder&&recorder.state==="recording"){ stopRecord(); return; }
+  startRecord();
+}
+function startRecord(){
+  if(typeof MediaRecorder==="undefined"){ toast("この環境では動画撮影に未対応です"); return; }
+  var mime=pickMime();
+  // canvasストリーム
+  recStream=view.captureStream? view.captureStream(state.fps) : (view.mozCaptureStream? view.mozCaptureStream(state.fps):null);
+  if(!recStream){ toast("動画のキャプチャに未対応です"); return; }
+  // マイク（任意・失敗しても続行）
+  var micPromise = navigator.mediaDevices&&navigator.mediaDevices.getUserMedia
+    ? navigator.mediaDevices.getUserMedia({audio:true}).catch(function(){return null;})
+    : Promise.resolve(null);
+  micPromise.then(function(ms){
+    micStream=ms;
+    var tracks=recStream.getVideoTracks();
+    if(ms) tracks=tracks.concat(ms.getAudioTracks());
+    var mixed=new MediaStream(tracks);
+    try{
+      recorder = mime? new MediaRecorder(mixed,{mimeType:mime}) : new MediaRecorder(mixed);
+    }catch(e){ toast("動画撮影を開始できません"); return; }
+    recChunks=[];
+    recorder.ondataavailable=function(e){ if(e.data&&e.data.size) recChunks.push(e.data); };
+    recorder.onstop=onRecStop;
+    recorder.start();
+    recStart=performance.now();
+    $("shutter").classList.add("rec");
+    $("recDot").classList.remove("hidden");
+    recIv=setInterval(function(){
+      var s=Math.floor((performance.now()-recStart)/1000);
+      $("recTime").textContent=pad(Math.floor(s/60))+":"+pad(s%60);
+    },250);
+  });
+}
+function stopRecord(){
+  if(!recorder) return;
+  try{ recorder.stop(); }catch(e){}
+  clearInterval(recIv);
+  $("shutter").classList.remove("rec");
+  $("recDot").classList.add("hidden");
+  if(micStream){ micStream.getTracks().forEach(function(t){t.stop();}); micStream=null; }
+}
+function onRecStop(){
+  var type=recorder&&recorder.mimeType? recorder.mimeType : "video/webm";
+  var blob=new Blob(recChunks,{type:type.split(";")[0]});
+  recChunks=[];
+  if(blob.size<1000){ toast("録画が短すぎました"); return; }
+  // サムネイル（現在の1フレーム）
+  var t=getScratch("vthumb",180,Math.round(180*pvH/pvW)); t.getContext("2d").drawImage(view,0,0,t.width,t.height);
+  var thumb=t.toDataURL("image/jpeg",0.6);
+  saveMedia({type:"video", blob:blob, thumb:thumb, w:outW, h:outH}).then(function(){
+    refreshAlbumBtn(); toast("動画を保存しました");
+  });
+}
+
+/* =========================================================
+   保存（IndexedDB）
+========================================================= */
+var db=null;
+function openDB(){
+  return new Promise(function(res){
+    if(!window.indexedDB){ res(null); return; }
+    var rq=indexedDB.open("retrocam",1);
+    rq.onupgradeneeded=function(e){ var d=e.target.result; if(!d.objectStoreNames.contains("media")){ var st=d.createObjectStore("media",{keyPath:"id",autoIncrement:true}); st.createIndex("ts","ts"); } };
+    rq.onsuccess=function(e){ db=e.target.result; res(db); };
+    rq.onerror=function(){ res(null); };
+  });
+}
+function saveMedia(rec){
+  return openDB().then(function(d){
+    if(!d) return;
+    rec.ts=Date.now();
+    return new Promise(function(res){
+      var tx=d.transaction("media","readwrite"); var st=tx.objectStore("media");
+      st.add(rec);
+      tx.oncomplete=function(){ res(); }; // 上限撤廃: 保存枚数は無制限(自動削除しない)
+      tx.onerror=function(){ res(); };
+    });
+  });
+}
+function allMedia(){
+  return openDB().then(function(d){
+    if(!d) return [];
+    return new Promise(function(res){
+      var out=[]; var tx=d.transaction("media","readonly"); var st=tx.objectStore("media");
+      st.openCursor().onsuccess=function(e){ var c=e.target.result; if(c){ out.push(c.value); c.continue(); } else { out.sort(function(a,b){return b.ts-a.ts;}); res(out); } };
+      tx.onerror=function(){ res([]); };
+    });
+  });
+}
+function deleteMedia(id){
+  return openDB().then(function(d){ if(!d)return; return new Promise(function(res){
+    var tx=d.transaction("media","readwrite"); tx.objectStore("media").delete(id); tx.oncomplete=res; tx.onerror=res;
+  });});
+}
+// 複数idを1トランザクションでまとめて削除(選択削除用)
+function deleteMediaMany(ids){
+  return openDB().then(function(d){ if(!d) return; return new Promise(function(res){
+    var tx=d.transaction("media","readwrite"); var st=tx.objectStore("media");
+    ids.forEach(function(id){ st.delete(id); });
+    tx.oncomplete=res; tx.onerror=res;
+  });});
+}
+function refreshAlbumBtn(){
+  allMedia().then(function(list){
+    var b=$("albumBtn"); b.innerHTML="";
+    if(!list.length){ var s=document.createElement("span"); s.className="ph"; s.textContent="▦"; b.appendChild(s); return; }
+    var img=document.createElement("img"); img.src=list[0].thumb; b.appendChild(img);
+    var c=document.createElement("span"); c.className="cnt"; c.textContent=list.length; b.appendChild(c);
+  });
+}
+
+/* =========================================================
+   アルバム / ビューア
+========================================================= */
+var albumSelMode=false;   // アルバムの選択削除モード
+var albumSel={};          // 選択中のidを保持(オブジェクトをSet代わりに使用)
+var albumList=[];         // 現在表示中のメディア一覧
+function openAlbum(){
+  allMedia().then(function(list){
+    albumList=list;
+    renderAlbumGrid();
+    $("album").classList.remove("hidden");
+  });
+}
+function renderAlbumGrid(){
+  var grid=$("sheetGrid"); grid.innerHTML="";
+  $("emptyAlb").classList.toggle("hidden", albumList.length>0);
+  albumList.forEach(function(m,idx){
+    var f=document.createElement("div"); f.className="frame"+(albumSel[m.id]?" sel":"");
+    var img=document.createElement("img"); img.src=m.thumb; f.appendChild(img);
+    // 通し番号(新しいものほど大きい番号)。ベタ焼き風の「12A」表記。
+    var no=document.createElement("span"); no.className="no"; no.textContent=pad(albumList.length-idx)+"A"; f.appendChild(no);
+    if(m.type==="video"){ var v=document.createElement("span"); v.className="vid"; v.textContent="▶"; f.appendChild(v); }
+    var mark=document.createElement("span"); mark.className="selmark"; mark.textContent="✓"; f.appendChild(mark);
+    f.onclick=function(){
+      if(albumSelMode){                                   // 選択モード: タップで選択トグル
+        if(albumSel[m.id]) delete albumSel[m.id]; else albumSel[m.id]=true;
+        f.classList.toggle("sel", !!albumSel[m.id]);
+        updateSelCount();
+      }else{                                              // 通常モード: ビューアを開く(1枚削除は従来どおり)
+        openViewer(m);
+      }
+    };
+    grid.appendChild(f);
+  });
+}
+function updateSelCount(){ $("albumDelSel").textContent="削除 ("+Object.keys(albumSel).length+")"; }
+function enterAlbumSel(){       // 選択モードに入る
+  albumSelMode=true; albumSel={};
+  $("album").classList.add("selmode");
+  $("albumActionBar").classList.remove("hidden");
+  $("albumSelectBtn").classList.add("on");
+  updateSelCount(); renderAlbumGrid();
+}
+function exitAlbumSel(){        // 選択モードを抜ける
+  albumSelMode=false; albumSel={};
+  $("album").classList.remove("selmode");
+  $("albumActionBar").classList.add("hidden");
+  $("albumSelectBtn").classList.remove("on");
+  renderAlbumGrid();
+}
+function toggleAlbumSelAll(){   // 全選択⇔全解除
+  var all = albumList.length>0 && Object.keys(albumSel).length===albumList.length;
+  albumSel={};
+  if(!all){ albumList.forEach(function(m){ albumSel[m.id]=true; }); }
+  updateSelCount(); renderAlbumGrid();
+}
+function deleteAlbumSel(){      // 選択したものをまとめて削除
+  var ids=Object.keys(albumSel).map(Number); // idは数値キーなのでNumber化
+  if(!ids.length){ toast("削除する項目を選んでください"); return; }
+  if(!window.confirm(ids.length+"件を削除します。よろしいですか？")) return;
+  deleteMediaMany(ids).then(function(){
+    exitAlbumSel(); refreshAlbumBtn(); openAlbum(); // 一覧を再読込
+    toast(ids.length+"件を削除しました");
+  });
+}
+var viewerCur=null, viewerURL=null;
+function openViewer(m){
+  viewerCur=m;
+  var body=$("viewerBody"); body.innerHTML="";
+  if(viewerURL) URL.revokeObjectURL(viewerURL);
+  viewerURL=URL.createObjectURL(m.blob);
+  $("viewerTitle").textContent = m.type==="video"?"動画":"写真";
+  if(m.type==="video"){ var v=document.createElement("video"); v.src=viewerURL; v.controls=true; v.playsInline=true; body.appendChild(v); }
+  else { var img=document.createElement("img"); img.src=viewerURL; body.appendChild(img); }
+  $("viewer").classList.remove("hidden");
+}
+function closeViewer(){ $("viewer").classList.add("hidden"); if(viewerURL){URL.revokeObjectURL(viewerURL);viewerURL=null;} }
+
+function shareCurrent(){
+  if(!viewerCur) return;
+  var ext = viewerCur.type==="video"? (/(mp4)/.test(viewerCur.blob.type)?"mp4":"webm") : "jpg";
+  var fname="retrocam_"+viewerCur.ts+"."+ext;
+  var file=new File([viewerCur.blob], fname, {type:viewerCur.blob.type});
+  if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+    navigator.share({files:[file]}).catch(function(){});
+  }else{
+    var a=document.createElement("a"); a.href=URL.createObjectURL(viewerCur.blob); a.download=fname;
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1000);
+    toast("ダウンロードしました");
+  }
+}
+function delCurrent(){
+  if(!viewerCur) return;
+  deleteMedia(viewerCur.id).then(function(){ closeViewer(); refreshAlbumBtn(); openAlbum(); });
+}
+
+/* =========================================================
+   水準器
+========================================================= */
+var levelG=0, levelEnabled=false;
+function enableLevel(){
+  if(levelEnabled) return;
+  function attach(){ window.addEventListener("deviceorientation", onTilt); levelEnabled=true; }
+  if(typeof DeviceOrientationEvent!=="undefined" && DeviceOrientationEvent.requestPermission){
+    DeviceOrientationEvent.requestPermission().then(function(p){ if(p==="granted") attach(); else { toast("傾きセンサーが許可されませんでした"); } }).catch(function(){ attach(); });
+  }else attach();
+}
+function onTilt(e){ if(e.gamma!=null) levelG=e.gamma; }
+function updateLevelBubble(){
+  var lv=$("level"); if(lv.classList.contains("hidden")) return;
+  var line=lv.querySelector(".lvl"); var dot=lv.querySelector(".dot");
+  var g=Math.max(-45,Math.min(45,levelG));
+  line.style.transform="rotate("+(-g)+"deg)";
+  lv.classList.toggle("ok", Math.abs(g)<2);
+  var w=lv.clientWidth;
+  dot.style.transform="translateX("+(g/45*(w*0.35))+"px)";
+}
+
+/* =========================================================
+   UI 構築
+========================================================= */
+function seg(container, items, current, onpick){
+  container.innerHTML="";
+  items.forEach(function(it){
+    var b=document.createElement("button");
+    b.textContent=it.label; if(it.value===current) b.classList.add("on");
+    b.onclick=function(){ onpick(it.value); };
+    container.appendChild(b);
+  });
+}
+function renderFilterBar(){
+  var bar=$("filterBar"); bar.innerHTML="";
+  FILTERS.forEach(function(f){
+    var c=document.createElement("button"); c.className="fchip"+(state.filter===f.id?" on":"");
+    c.textContent=f.name;
+    c.onclick=function(){ state.filter=f.id; saveSettings(); renderFilterBar(); renderStatus(); };
+    bar.appendChild(c);
+  });
+}
+function renderStatus(){
+  var el=$("statusChips"); el.innerHTML="";
+  var o=outputSize();
+  var chips=[
+    RES[state.res].name + (state.res==="max"&&o.W? " "+o.W+"×"+o.H : (state.res!=="max"? " "+o.W+"×"+o.H:"")),
+    state.ratio,
+    state.zoom+"×",
+    (state.facing==="user"?"前面":"背面"),
+    currentFilter().name
+  ];
+  // 静止画で手動SS/ISO指定時、または動画モード時に状態チップを追加
+  if(state.mode==="photo"){
+    if(state.shutter!=="auto") chips.push("SS "+shutterLabelOf(state.shutter));
+    if(state.iso!=="auto")     chips.push("ISO "+state.iso);
+  }else{
+    chips.push("動画:"+(VIDEO_SCENES[state.videoScene]||VIDEO_SCENES.day).name);
+  }
+  chips.forEach(function(t){ var c=document.createElement("span"); c.className="chip"; c.innerHTML="<b>"+t+"</b>"; el.appendChild(c); });
+}
+function renderQuick(){
+  $("qTimerV").textContent = state.timer? state.timer+"秒":"OFF";
+  $("qTimer").classList.toggle("on", state.timer>0);
+  $("qZoomV").textContent = state.zoom+"×";
+  $("qZoom").classList.toggle("on", state.zoom>1);
+  $("qBurstV").textContent = state.burst? "連写":"単写";
+  $("qBurst").classList.toggle("on", state.burst);
+  var sname="カシャ"; SOUNDS.forEach(function(s){ if(s.id===state.sound) sname=s.name; });
+  $("qSoundV").textContent = sname;
+  $("qSound").classList.toggle("on", state.sound!=="none");
+}
+function renderShutter(){
+  var sh=$("shutter"); sh.classList.toggle("video", state.mode==="video");
+  $("modeIcon").textContent = state.mode==="photo"? "🎬":"📷";
+  $("modeLab").textContent = state.mode==="photo"? "動画へ":"写真へ";
+}
+function renderControls(){
+  // sheet segments
+  seg($("resSeg"), RES_ORDER.map(function(k){return {label:RES[k].name,value:k};}), state.res, function(v){
+    state.res=v;
+    if(RES[v].ratio){ state.ratio=RES[v].ratio; }
+    if(RES[v].filter){ state.filter=RES[v].filter; } // レトロは補正自動、後から変更可
+    saveSettings(); renderControls(); renderFilterBar(); renderStatus();
+    if(camReady) startCamera();
+  });
+  $("resHint").textContent=RES[state.res].hint;
+
+  // アスペクト比: 横向き・縦向きの2グループ(現在値はどちらかで強調表示される)
+  function pickRatio(v){ state.ratio=v; saveSettings(); renderControls(); renderStatus(); if(camReady) layout(); }
+  seg($("ratioSegLand"), RATIOS_LAND.map(function(r){return {label:r,value:r};}), state.ratio, pickRatio);
+  seg($("ratioSegPort"), RATIOS_PORT.map(function(r){return {label:r,value:r};}), state.ratio, pickRatio);
+  seg($("zoomSeg"), [{label:"1×",value:1},{label:"2×",value:2}], state.zoom, function(v){ state.zoom=v; saveSettings(); renderControls(); renderStatus(); renderQuick(); });
+  seg($("timerSeg"), [{label:"OFF",value:0},{label:"3秒",value:3},{label:"10秒",value:10}], state.timer, function(v){ state.timer=v; saveSettings(); renderControls(); renderQuick(); });
+  seg($("fpsSeg"), [{label:"24fps",value:24},{label:"30fps",value:30},{label:"60fps",value:60}], state.fps, function(v){ state.fps=v; saveSettings(); renderControls(); if(camReady) applyCamControls(); });
+
+  // 静止画: シャッタースピード(自動＋手動)
+  seg($("shutterSeg"), SHUTTER_STILL.map(function(s){return {label:s.label,value:s.id};}), state.shutter, function(v){
+    state.shutter=v; saveSettings(); renderControls(); renderStatus(); if(camReady) applyCamControls();
+  });
+  $("shutterHint").textContent="対応端末では実制御を試み、非対応端末(iPhone等)では明るさで擬似再現します。1秒・30秒はコンポジット合成で撮影します。";
+  // 長秒露光の合成方式(加算平均/比較明)
+  seg($("compSeg"), COMPOSITES.map(function(c){return {label:c.label,value:c.id};}), state.composite, function(v){ state.composite=v; saveSettings(); renderControls(); });
+  // 静止画: ISO感度(自動＋手動)
+  seg($("isoSeg"), ISO_STILL.map(function(s){return {label:s.label,value:s.id};}), state.iso, function(v){
+    state.iso=v; saveSettings(); renderControls(); renderStatus(); if(camReady) applyCamControls();
+  });
+  $("isoHint").textContent="高ISOほど明るく粒状ノイズが増えます。対応端末では実制御を試み、非対応端末では擬似再現します。";
+  // 動画: シーンプリセット(選ぶとFPS初期値を適用。SS基準は現在のFPSに追従)
+  seg($("sceneSeg"), SCENE_ORDER.map(function(k){return {label:VIDEO_SCENES[k].name,value:k};}), state.videoScene, function(v){
+    state.videoScene=v; state.fps=VIDEO_SCENES[v].fps; // シーンの初期FPSを適用(後から手動変更可)
+    saveSettings(); renderControls(); if(camReady) applyCamControls();
+  });
+  var scNow=VIDEO_SCENES[state.videoScene]||VIDEO_SCENES.day;
+  $("sceneHint").textContent=scNow.note+"（現在: FPS"+state.fps+" / SS≈"+fmtShutter(videoShutterSec())+"）";
+  seg($("dateFontSeg"), DATE_FONTS.map(function(f){return {label:f.name,value:f.id};}), state.date.font, function(v){ state.date.font=v; saveSettings(); renderControls(); });
+  seg($("dateColorSeg"), DATE_COLORS.map(function(c){return {label:c.name,value:c.id};}), state.date.color, function(v){ state.date.color=v; saveSettings(); renderControls(); });
+  seg($("soundSeg"), SOUNDS.map(function(s){return {label:s.name,value:s.id};}), state.sound, function(v){
+    if(v==="custom" && !customBuffer && !customEl){ $("soundFile").click(); return; }
+    state.sound=v; saveSettings(); renderControls(); renderQuick();
+  });
+
+  // toggles
+  tg("tgBurst", state.burst, function(v){ state.burst=v; saveSettings(); renderQuick(); });
+  tg("tgGrid", state.grid, function(v){ state.grid=v; $("grid").classList.toggle("hidden",!v); saveSettings(); });
+  tg("tgLevel", state.level, function(v){ state.level=v; $("level").classList.toggle("hidden",!v); if(v) enableLevel(); saveSettings(); });
+  tg("tgVig", state.effects.vig, function(v){ state.effects.vig=v; saveSettings(); });
+  tg("tgGrain", state.effects.grain, function(v){ state.effects.grain=v; saveSettings(); });
+  tg("tgLeak", state.effects.leak, function(v){ state.effects.leak=v; saveSettings(); });
+  tg("tgLag", state.effects.lag, function(v){ state.effects.lag=v; saveSettings(); });
+  tg("tgDate", state.date.on, function(v){ state.date.on=v; saveSettings(); });
+
+  $("recHint").textContent = (typeof MediaRecorder==="undefined")? "※この環境では動画撮影に未対応です。":"録画はプレビュー画質（エフェクト込み）で保存されます。マイク音声は許可時のみ収録します。";
+
+  renderQuick(); renderShutter();
+}
+function tg(id,on,cb){
+  var el=$(id); el.classList.toggle("on",on);
+  el.onclick=function(){ var nv=!el.classList.contains("on"); cb(nv); el.classList.toggle("on",nv); };
+}
+
+/* =========================================================
+   toast
+========================================================= */
+var toastIv=0;
+function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearInterval(toastIv); toastIv=setTimeout(function(){ t.classList.remove("show"); },1600); }
+
+/* =========================================================
+   イベント
+========================================================= */
+$("startBtn").onclick=function(){ ensureAudio(); startCamera(); };
+$("shutter").onclick=shutter;
+$("switchCam").onclick=function(){ state.facing = state.facing==="user"?"environment":"user"; saveSettings(); renderStatus(); if(camReady) startCamera(); };
+$("modeBtn").onclick=function(){ if(recorder&&recorder.state==="recording") return; state.mode = state.mode==="photo"?"video":"photo"; saveSettings(); renderShutter(); renderStatus(); if(camReady) applyCamControls(); };
+
+$("qTimer").onclick=function(){ state.timer = state.timer===0?3:(state.timer===3?10:0); saveSettings(); renderQuick(); renderControls(); };
+$("qZoom").onclick=function(){ state.zoom = state.zoom===1?2:1; saveSettings(); renderQuick(); renderStatus(); renderControls(); };
+$("qBurst").onclick=function(){ state.burst=!state.burst; saveSettings(); renderQuick(); renderControls(); };
+$("qSound").onclick=function(){ openSheet(); setTimeout(function(){ $("soundSeg").scrollIntoView({behavior:"smooth",block:"center"}); },250); };
+
+$("gearBtn").onclick=openSheet;
+$("sheetClose").onclick=closeSheet;
+$("scrim").onclick=closeSheet;
+function openSheet(){ $("scrim").classList.remove("hidden"); $("sheet").classList.add("open"); }
+function closeSheet(){ $("scrim").classList.add("hidden"); $("sheet").classList.remove("open"); }
+
+$("albumBtn").onclick=openAlbum;
+$("albumClose").onclick=function(){ exitAlbumSel(); $("album").classList.add("hidden"); }; // 閉じる時は選択モードも解除
+$("albumSelectBtn").onclick=enterAlbumSel;   // 選択して削除モードへ
+$("albumCancelSel").onclick=exitAlbumSel;    // 選択キャンセル
+$("albumSelAll").onclick=toggleAlbumSelAll;  // 全選択/全解除
+$("albumDelSel").onclick=deleteAlbumSel;     // 選択したものを一括削除
+$("viewerClose").onclick=closeViewer;
+$("viewerShare").onclick=shareCurrent;
+$("viewerDel").onclick=delCurrent;
+
+$("soundLoadBtn").onclick=function(){ $("soundFile").click(); };
+$("soundTestBtn").onclick=function(){ ensureAudio(); playShutter(); };
+$("soundFile").onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f){ ensureAudio(); loadSoundFile(f); } e.target.value=""; };
+$("trimStart").oninput=function(e){ state.trim.start=parseFloat(e.target.value); $("trimStartV").textContent=state.trim.start.toFixed(1)+"s";
+  var maxLen=Math.min(3, state.trim.dur-state.trim.start); if(state.trim.len>maxLen){ state.trim.len=Math.max(0.1,maxLen); $("trimLen").value=state.trim.len; $("trimLenV").textContent=state.trim.len.toFixed(1)+"s"; } $("trimLen").max=Math.max(0.1,maxLen).toFixed(2); };
+$("trimLen").oninput=function(e){ state.trim.len=parseFloat(e.target.value); $("trimLenV").textContent=state.trim.len.toFixed(1)+"s"; };
+
+// prevent double-tap zoom on controls
+document.addEventListener("gesturestart", function(e){ e.preventDefault(); });
+
+/* =========================================================
+   起動
+========================================================= */
+loadSettings();
+$("grid").classList.toggle("hidden",!state.grid);
+$("level").classList.toggle("hidden",!state.level);
+renderFilterBar(); renderStatus(); renderControls(); renderShutter(); renderQuick();
+refreshAlbumBtn();
+cam.addEventListener("loadedmetadata", function(){ if(camReady){ layout(); renderStatus(); } });
+// 自動起動を試みる（失敗時は起動ボタン表示のまま）
+if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+  // ユーザー操作が要る環境向けに、まずは待機。タップで確実に起動。
+}
+ensureLoop();
+
+})();
+</script>
+</body>
+</html>
